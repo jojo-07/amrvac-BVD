@@ -254,7 +254,8 @@ contains
     namelist /methodlist/ time_stepper,time_integrator, &
          source_split_usr,typesourcesplit,local_timestep,&
          dimsplit,typedimsplit,flux_scheme,&
-         limiter,gradient_limiter,cada3_radius,&
+         limiter,gradient_limiter,cada3_radius,bvd_beta,bvd_beta2,&
+         bvd_twostage,bvd_highorder,bvd_selection,&
          loglimit,typeboundspeed, H_correction,&
          typetvd,typeentropy,entropycoef,typeaverage, &
          typegrad,typediv,typecurl,&
@@ -473,6 +474,11 @@ contains
     else
       cada3_radius  = 0.1d0
     end if
+    bvd_beta      = 1.05d0
+    bvd_beta2     = 1.2d0
+    bvd_twostage  = .false.
+    bvd_highorder = 1
+    bvd_selection = .true.
     {schmid_rad^D = 1.d0\}
     typetvd         = 'roe'
     typeboundspeed  = 'Einfeldt'
@@ -1446,6 +1452,10 @@ contains
     end if
 
     if(any(limiter(1:nlevelshi)=='weno5cu6')) then
+      nghostcells=max(nghostcells,3)
+    end if
+
+    if(any(limiter(1:nlevelshi)=='bvd')) then
       nghostcells=max(nghostcells,3)
     end if
 

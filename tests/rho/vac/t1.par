@@ -1,0 +1,7 @@
+ &methodlist
+        bvd_twostage = .true.
+        bvd_beta2 = 1.05d0
+ /
+ &filelist
+        base_filename = '_t1'
+ /

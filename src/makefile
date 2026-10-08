@@ -110,6 +110,9 @@ mod_boundary_conditions.o: mod_functions_bfield.mod
 mod_boundary_conditions.o: mod_global_parameters.mod
 mod_boundary_conditions.o: mod_physics.mod
 mod_boundary_conditions.o: mod_usr_methods.mod
+mod_bvd.o: mod_global_parameters.mod
+mod_bvd.o: mod_limiter.mod
+mod_bvd.o: mod_weno.mod
 mod_bremsstrahlung.o: mod_constants.mod
 mod_bremsstrahlung.o: mod_physics.mod
 mod_cak_force.o: mod_comm_lib.mod
@@ -218,6 +221,7 @@ mod_finite_difference.o: mod_physics.mod
 mod_finite_difference.o: mod_source.mod
 mod_finite_difference.o: mod_usr_methods.mod
 mod_finite_difference.o: mod_variables.mod
+mod_finite_volume.o: mod_bvd.mod
 mod_finite_volume.o: mod_comm_lib.mod
 mod_finite_volume.o: mod_global_parameters.mod
 mod_finite_volume.o: mod_limiter.mod

@@ -1,0 +1,41 @@
+# AMRVAC 2.5D CME 后处理
+## visit部分 
+- 1.将 .vtu 文件导入 visit
+- 2.创建数密度 n，径向速度和磁场大小的单位也需要换算成$\rm[km/s]$和$\rm [nT]$,分别乘以 1e3 和 1e4
+    - Controls - Expressions
+    - new 
+    - Name:n 
+    - Definition: rho*1e8
+    - Apply
+- 3.导出tecplot格式的数据集 .dat
+    - File
+    - Export database
+    - 修改 Directory name 和 File name 
+    - Export to: Tecplot
+    - Add variable(可选多个)
+    - Export
+    - Compression: None
+    - OK
+## Tecplot 部分 
+- 1.将生成的 .dat文件导入 tecplot 360
+- 2.创建球坐标变量 r 和 lat（二维退化成极坐标），并提取 r=216 的边缘网格节点
+    - Data 
+    - Alter
+    - Specify Equations
+    - Equation(s): {r} = sqrt({X}\*{X} + {Y}\*{Y})
+    - Equation(s): {lat} = atan2({Y},{X})\*180/pi
+    - Equation(s): {mask_ok}=IF( abs({r}-216.0) < 0.1 , 1 , 0 )
+- 3.只显示边缘节点数据
+    - Plot → Blanking → Value Blanking
+        - 勾选最上方 Include value blanking（必须勾，否则全部设置不生效）
+        - 选中：Blank entire cells when: any corner is blanked，这个选项保留不动，适配 FEBLOCK 网格。
+        - 勾选 Active（激活 Constraint1 这一组条件）
+        - 修改下拉框：
+        - 第一个下拉，把X改成变量：mask_ok
+        - 中间条件改成：equals
+        - 保持Constant单选，输入框填：0
+        - 含义：当 mask_ok 等于 0 的时候，就把这个单元隐藏 blank 掉，只保留 mask_ok=1（r≈216 附近）的单元。
+        - 点Apply，此时画面应该只剩下最外层一圈网格（也可能什么也不显示，但不影响一维绘图）。
+- 4.绘制边缘节点数据图
+   - 切 XY Line 模式绘图
+   - Mapping Style - Creat Map 添加其他变量

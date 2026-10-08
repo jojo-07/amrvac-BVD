@@ -180,14 +180,18 @@ contains
       else
         call read_cme_parameters(cme_parameter_file)
       end if
-      ! Initialize cme starting index in the trajectory file, cme index in the trajectory file and the time difference between the start and cme indexes
+      ! Compute CME time offsets from real-world dates vs magnetogram (2015-06-25T01:04:00)
       if (num_cmes > 0) then
         do n = 1, num_cmes
           do i = 1, 10
             cme_index(i, n) = 0
             starting_index(i, n) = 0
-            time_difference_cme_magn(i, n) = 0
           end do
+          ! time diff in hours: positive = CME after magnetogram, negative = before
+          time_difference_cme_magn(1, n) = &
+            (cme_day(n) - magnetogram_timestamp(3)) * 24.0d0 + &
+            (cme_hour(n) - magnetogram_timestamp(4)) + &
+            (cme_minute(n) - magnetogram_timestamp(5)) / 60.0d0
         end do
         else
           do i = 1, 10
@@ -198,24 +202,25 @@ contains
        end if
 
 
-        do i=1, 10
-            call find_trajectory_file(i, path_satellite_trajectories)
-        end do
+        !!! SKIP trajectory loading for quick test
+        !do i=1, 10
+        !    call find_trajectory_file(i, path_satellite_trajectories)
+        !end do
 
         ALLOCATE(positions_list(10), STAT=AllocateStatus)
 
       ! for each satellite, read the trajectory data and save in the arrays of time and locations
-      do i = 1, 10
-        if (which_satellite(i)==1) then
-          sat_indx(i-zero_count) = i
-          sat_count = sat_count+1
-          call read_satellite_trajectory(trajectory_list(i), i)
-          !print *, i, positions_list(i)%positions(1,1)
-        end if
-         if (which_satellite(i) == 0) then
-          zero_count = zero_count+1
-         end if
-      end do
+      !!! SKIPPED for quick test
+      !do i = 1, 10
+      !  if (which_satellite(i)==1) then
+      !    sat_indx(i-zero_count) = i
+      !    sat_count = sat_count+1
+      !    call read_satellite_trajectory(trajectory_list(i), i)
+      !  end if
+      !   if (which_satellite(i) == 0) then
+      !    zero_count = zero_count+1
+      !   end if
+      !end do
 
 
 
@@ -480,10 +485,6 @@ contains
 
     ! To Follow Earth location in the domain
 
-    before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
-    phi_satellite = delta_phi + positions_list(1)%positions(9, last_index(1))&
-      - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/365.24)
-
     ! Threshold for negative nabla V
     threshold = -0.005
 
@@ -518,6 +519,9 @@ contains
     ! Refinement criterion for tracing function
     if (amr_criterion == "tracing") then
       if (qt > timestamp(1)) then
+        before_cme = (cme_index(1,1) - magnetogram_index(1))/60.0
+        phi_satellite = delta_phi + positions_list(1)%positions(9, last_index(1))&
+          - (qt-(timestamp(1)-before_cme))*(2.0*dpi)/24.0*(1/2.447d1-1/365.24)
       !  if (any(w(ixI^S,tracer(1)) > 0.001) .and. any(x(ixI^S,1) >= 50.0)) then
           if (any(w(ixI^S,tracer(1)) > 0.001)) then
             if (any(x(ixI^S,3) < phi_satellite + 30*dpi/180) .and. any(x(ixI^S,3) > max(phi_satellite -30*dpi/180,0.0)) ) then

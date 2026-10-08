@@ -119,8 +119,8 @@ contains
     double precision, intent(inout) :: w(ixI^S,1:nw)
 
     double precision :: pth(ixI^S),tmp(ixI^S)
-    integer :: ix1,ix2,ixA^L,ixOs^L
-    double precision :: omega, LM, Pg1, Pg2, Ti, Pin, latitude
+    integer :: ix1,ix2,ixA^L,ixOs^L,ghostk
+    double precision :: omega, LM, coefg, coefi, Ti, Pin, latitude
 
     select case (iB)
     case (1)
@@ -143,78 +143,71 @@ contains
        ! Loop through ghost cells along boundary (in the theta direction)
        do ix2=ixOmin2,ixOmax2
 
-         ! The density is fixed at the inner boundary
-         w(ixOmax1,ix2,rho_) = 2.0d0*rhobnd-w(ixOmax1+1,ix2,rho_)
-         w(ixOmin1,ix2,rho_) = 4.0d0*rhobnd-3.0d0*w(ixOmax1+1,ix2,rho_)
+         ! All inner-boundary ghost layers are filled here.
+         ! NOTE: this must be valid for ANY nghostcells, since wide-stencil
+         ! limiters (weno5, bvd, ...) require 3 or more ghost layers.
+         ! Radial linear extrapolation from the face value q_bnd and the
+         ! first interior cell q(I1), I1 = ixOmax1+1:
+         !   q(k) = (2k)*q_bnd - (2k-1)*q(I1),  k=1..nghostcells
+         ! with k=1 the layer adjacent to the interior (ix1 = ixOmax1).
 
-         ! vphi/(r sin(theta)) is fixed at the inner boundary (this is the angular velocity)
-         ! this is where we impose the differential rotation of the Sun
+         ! per-column reference quantities (interior cell only)
          omega=gamma0+gamma2*(dcos(x(ixOmax1,ix2,2)))**2+gamma4*(dcos(x(ixOmax1,ix2,2)))**4
-         w(ixOmax1,ix2,mom(3)) = x(ixOmax1,ix2,1)*dsin(x(ixOmax1,ix2,2))*w(ixOmax1,ix2,rho_)&
-                  *(2.0d0*omega-w(ixOmax1+1,ix2,mom(3))/(x(ixOmax1+1,ix2,1)*dsin(x(ixOmax1+1,ix2,2))*w(ixOmax1+1,ix2,rho_)))
-         w(ixOmin1,ix2,mom(3)) = x(ixOmin1,ix2,1)*dsin(x(ixOmin1,ix2,2))*w(ixOmin1,ix2,rho_)&
-                  *(4.0d0*omega-3.0d0*w(ixOmax1+1,ix2,mom(3))/(x(ixOmax1+1,ix2,1)*dsin(x(ixOmax1+1,ix2,2))*w(ixOmax1+1,ix2,rho_)))
-
-         if(.not.stagger_grid) then
-           ! Btheta decreases like a dipole
-           ! this might not be a very good boundary condition
-           ! Btheta(g) = Btheta(I) + (BthetaDIPOLE(g) - BthetaDIPOLE(I))     "g" is for ghostcell and "I" for first inner cell
-           w(ixOmax1,ix2,mag(2)) = w(ixOmax1+1,ix2,mag(2))
-           w(ixOmin1,ix2,mag(2)) = w(ixOmax1+1,ix2,mag(2))
-
-           ! r^2*Br is fixed at the inner boundary (this is how we force a dipole field for the Sun)
-           w(ixOmax1,ix2,mag(1)) = (2.0d0*2.0d0*Bbnd*dcos(x(ixOmax1,ix2,2)) &
-                  -(w(ixOmax1+1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ixOmax1+1,ix2,2))/x(ixOmax1+1,ix2,1)**3)*x(ixOmax1+1,ix2,1)**2)/x(ixOmax1,ix2,1)**2 &
-                  -Bbnd*2.0d0*dcos(x(ixOmax1,ix2,2))/x(ixOmax1,ix2,1)**3
-           w(ixOmin1,ix2,mag(1)) = (4.0d0*2.0d0*Bbnd*dcos(x(ixOmin1,ix2,2)) &
-                  -3.0d0*(w(ixOmax1+1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ixOmax1+1,ix2,2))/x(ixOmax1+1,ix2,1)**3)*x(ixOmax1+1,ix2,1)**2)/x(ixOmin1,ix2,1)**2 &
-                  -Bbnd*2.0d0*dcos(x(ixOmin1,ix2,2))/x(ixOmin1,ix2,1)**3
-         end if
-
          latitude = 0.5d0*dpi-x(ixOmax1,ix2,2)
-         ! if outside of the deadzone
-         ! r^2*rho*Vr is constant at the inner boundary
-         if(abs(latitude) >= 0.3927d0) then
-            w(ixOmax1,ix2,mom(1)) = w(ixOmax1+1,ix2,mom(1))*(x(ixOmax1+1,ix2,1)/x(ixOmax1,ix2,1))**2
-            w(ixOmin1,ix2,mom(1)) = w(ixOmax1+1,ix2,mom(1))*(x(ixOmax1+1,ix2,1)/x(ixOmin1,ix2,1))**2
-            ! we choose Mtheta in order to have vect(B) and vect(v) parallel
-            w(ixOmax1,ix2,mom(2)) = w(ixOmax1,ix2,mom(1))*(w(ixOmax1,ix2,mag(2))+Bbnd*dsin(x(ixOmax1,ix2,2))/x(ixOmax1,ix2,1)**3) &
-                                  / (w(ixOmax1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ixOmax1,ix2,2))/x(ixOmax1,ix2,1)**3)
-            w(ixOmin1,ix2,mom(2)) = w(ixOmin1,ix2,mom(1))*(w(ixOmin1,ix2,mag(2))+Bbnd*dsin(x(ixOmin1,ix2,2))/x(ixOmin1,ix2,1)**3) &
-                                  / (w(ixOmin1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ixOmin1,ix2,2))/x(ixOmin1,ix2,1)**3)
-            !r^3*(rho*vr*vphi-Br*Bphi) is continuous at the inner boundary
-            LM=x(ixOmax1+1,ix2,1)**3*(w(ixOmax1+1,ix2,mom(1))*w(ixOmax1+1,ix2,mom(3))/w(ixOmax1+1,ix2,rho_) &
-                 - (w(ixOmax1+1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ixOmax1+1,ix2,2))/x(ixOmax1+1,ix2,1)**3)*w(ixOmax1+1,ix2,mag(3)))
-            w(ixOmax1,ix2,mag(3)) = (w(ixOmax1,ix2,mom(1))*w(ixOmax1,ix2,mom(3))/w(ixOmax1,ix2,rho_)-LM/x(ixOmax1,ix2,1)**3) &
-                                  / (w(ixOmax1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ixOmax1,ix2,2))/x(ixOmax1,ix2,1)**3)
-            w(ixOmin1,ix2,mag(3)) = (w(ixOmin1,ix2,mom(1))*w(ixOmin1,ix2,mom(3))/w(ixOmin1,ix2,rho_)-LM/x(ixOmin1,ix2,1)**3) &
-                                  / (w(ixOmin1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ixOmin1,ix2,2))/x(ixOmin1,ix2,1)**3)
-         else
-            ! if inside the deadzone: m1 is zero at the boundary
-            w(ixOmax1,ix2,mom(1)) = -w(ixOmax1+1,ix2,mom(1))
-            w(ixOmin1,ix2,mom(1)) = -3.0d0*w(ixOmax1+1,ix2,mom(1))
-            ! if inside the deadzone: m2 is zero at the boundary
-            w(ixOmax1,ix2,mom(2)) = -w(ixOmax1+1,ix2,mom(2))
-            w(ixOmin1,ix2,mom(2)) = -3.0d0*w(ixOmax1+1,ix2,mom(2))
-            ! if inside the deadzone: Bphi is continuous
-            w(ixOmax1,ix2,mag(3)) = w(ixOmax1+1,ix2,mag(3))
-            w(ixOmin1,ix2,mag(3)) = w(ixOmax1+1,ix2,mag(3))
-         endif
-
-
-
-         ! T is fixed at the boundary
          Pin = (mhd_gamma-one)*(w(ixOmax1+1,ix2,e_)&
                   -0.5d0*(w(ixOmax1+1,ix2,mag(1))**2+w(ixOmax1+1,ix2,mag(2))**2+w(ixOmax1+1,ix2,mag(3))**2) &
                   -0.5d0*(w(ixOmax1+1,ix2,mom(1))**2+w(ixOmax1+1,ix2,mom(2))**2+w(ixOmax1+1,ix2,mom(3))**2)/w(ixOmax1+1,ix2,rho_) )
-         Pg1 = w(ixOmax1,ix2,rho_)*(2.0d0*Tbnd-Pin/w(ixOmax1+1,ix2,rho_))
-         Pg2 = w(ixOmin1,ix2,rho_)*(4.0d0*Tbnd-3.0d0*Pin/w(ixOmax1+1,ix2,rho_))
-         w(ixOmax1,ix2,e_)  = Pg1/(mhd_gamma-one) &
-                            + 0.5d0*(w(ixOmax1,ix2,mag(1))**2+w(ixOmax1,ix2,mag(2))**2+w(ixOmax1,ix2,mag(3))**2) &
-                            + 0.5d0*(w(ixOmax1,ix2,mom(1))**2+w(ixOmax1,ix2,mom(2))**2+w(ixOmax1,ix2,mom(3))**2)/w(ixOmax1,ix2,rho_)
-         w(ixOmin1,ix2,e_)  = Pg2/(mhd_gamma-one) &
-                            + 0.5d0*(w(ixOmin1,ix2,mag(1))**2+w(ixOmin1,ix2,mag(2))**2+w(ixOmin1,ix2,mag(3))**2) &
-                            + 0.5d0*(w(ixOmin1,ix2,mom(1))**2+w(ixOmin1,ix2,mom(2))**2+w(ixOmin1,ix2,mom(3))**2)/w(ixOmin1,ix2,rho_)
+         if(abs(latitude) >= 0.3927d0) then
+            LM=x(ixOmax1+1,ix2,1)**3*(w(ixOmax1+1,ix2,mom(1))*w(ixOmax1+1,ix2,mom(3))/w(ixOmax1+1,ix2,rho_) &
+                 - (w(ixOmax1+1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ixOmax1+1,ix2,2))/x(ixOmax1+1,ix2,1)**3)*w(ixOmax1+1,ix2,mag(3)))
+         end if
+
+         do ix1=ixOmin1,ixOmax1
+            ghostk=ixOmax1-ix1+1
+            coefg=2.0d0*dble(ghostk)
+            coefi=2.0d0*dble(ghostk)-1.0d0
+
+            ! density fixed at the inner boundary
+            w(ix1,ix2,rho_) = coefg*rhobnd-coefi*w(ixOmax1+1,ix2,rho_)
+
+            ! vphi/(r sin(theta)) fixed at the inner boundary
+            ! this is where we impose the differential rotation of the Sun
+            w(ix1,ix2,mom(3)) = x(ix1,ix2,1)*dsin(x(ix1,ix2,2))*w(ix1,ix2,rho_)&
+                     *(coefg*omega-coefi*w(ixOmax1+1,ix2,mom(3))&
+                     /(x(ixOmax1+1,ix2,1)*dsin(x(ixOmax1+1,ix2,2))*w(ixOmax1+1,ix2,rho_)))
+
+            if(.not.stagger_grid) then
+               ! Btheta is continuous
+               w(ix1,ix2,mag(2)) = w(ixOmax1+1,ix2,mag(2))
+
+               ! r^2*Br is fixed at the inner boundary (dipole field for the Sun)
+               w(ix1,ix2,mag(1)) = (coefg*2.0d0*Bbnd*dcos(x(ix1,ix2,2)) &
+                      -coefi*(w(ixOmax1+1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ixOmax1+1,ix2,2))&
+                      /x(ixOmax1+1,ix2,1)**3)*x(ixOmax1+1,ix2,1)**2)/x(ix1,ix2,1)**2 &
+                      -Bbnd*2.0d0*dcos(x(ix1,ix2,2))/x(ix1,ix2,1)**3
+            end if
+
+            if(abs(latitude) >= 0.3927d0) then
+               ! outside the deadzone: r^2*rho*Vr fixed, V parallel to B,
+               ! r^3*(rho*vr*vphi-Br*Bphi) continuous
+               w(ix1,ix2,mom(1)) = w(ixOmax1+1,ix2,mom(1))*(x(ixOmax1+1,ix2,1)/x(ix1,ix2,1))**2
+               w(ix1,ix2,mom(2)) = w(ix1,ix2,mom(1))*(w(ix1,ix2,mag(2))+Bbnd*dsin(x(ix1,ix2,2))/x(ix1,ix2,1)**3) &
+                     / (w(ix1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ix1,ix2,2))/x(ix1,ix2,1)**3)
+               w(ix1,ix2,mag(3)) = (w(ix1,ix2,mom(1))*w(ix1,ix2,mom(3))/w(ix1,ix2,rho_)-LM/x(ix1,ix2,1)**3) &
+                     / (w(ix1,ix2,mag(1))+Bbnd*2.0d0*dcos(x(ix1,ix2,2))/x(ix1,ix2,1)**3)
+            else
+               ! inside the deadzone: m1 and m2 zero at the boundary, Bphi continuous
+               w(ix1,ix2,mom(1)) = -coefi*w(ixOmax1+1,ix2,mom(1))
+               w(ix1,ix2,mom(2)) = -coefi*w(ixOmax1+1,ix2,mom(2))
+               w(ix1,ix2,mag(3)) = w(ixOmax1+1,ix2,mag(3))
+            endif
+
+            ! T is fixed at the boundary
+            w(ix1,ix2,e_) = w(ix1,ix2,rho_)*(coefg*Tbnd-coefi*Pin/w(ixOmax1+1,ix2,rho_))/(mhd_gamma-one) &
+                            + 0.5d0*(w(ix1,ix2,mag(1))**2+w(ix1,ix2,mag(2))**2+w(ix1,ix2,mag(3))**2) &
+                            + 0.5d0*(w(ix1,ix2,mom(1))**2+w(ix1,ix2,mom(2))**2+w(ix1,ix2,mom(3))**2)/w(ix1,ix2,rho_)
+
+         end do
        end do
 
     case (2) ! Upper radial boundary

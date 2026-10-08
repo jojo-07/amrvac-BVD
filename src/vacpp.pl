@@ -95,6 +95,8 @@ sub processfile {
    open($input, $filename) || die"Can't open $filename: $!\n";
 
    while (<$input>) {
+      # Strip carriage returns from CRLF line endings
+      s/\r//g;
       # Print empty and comment lines as they are
       if(/^$/ || /^ *![^S]/ && not /^ *!\$[^S]/) {
           print;
@@ -149,10 +151,17 @@ sub processline{
       &block($input);
    }
    # DO SUBSTITUTION FOR EXPRESSIONS "...^pattern..."
+   # Hide inline comments (! not followed by $) to protect ^ inside comments
+   my $comment = '';
+   if (s/(!)(?!\$)(.*?)(\n?)$//) {
+       $comment = $1.$2.$3;
+   }
    while(/$pat/){
        &expression;
       #print "Expr:$_";
    }
+   # Restore inline comment
+   $_ .= $comment;
    # REMOVE NUL-SEPARATOR CHARACTERS
    s/$spc//g;
    # REPLACE BREAK CHARACTERS BY NEWLINES AND INDENTATION

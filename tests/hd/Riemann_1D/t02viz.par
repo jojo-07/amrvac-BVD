@@ -1,0 +1,11 @@
+ &filelist
+        base_filename='viz'
+        convert_type='tecplotCCmpi'
+        autoconvert=T
+ /
+ &stoplist
+        time_max=0.2d0
+ /
+ &meshlist
+        refine_max_level=1
+ /

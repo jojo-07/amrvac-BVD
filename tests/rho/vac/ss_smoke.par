@@ -1,0 +1,6 @@
+ &methodlist
+        bvd_twostage = .false.
+ /
+ &filelist
+        base_filename = '_ss'
+ /

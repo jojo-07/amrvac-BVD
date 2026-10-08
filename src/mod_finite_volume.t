@@ -1111,6 +1111,7 @@ contains
     use mod_physics
     use mod_global_parameters
     use mod_limiter
+    use mod_bvd, only: BVDlimiter
     use mod_comm_lib, only: mpistop
 
     integer, intent(in) :: ixI^L, ixL^L, ixR^L, idims
@@ -1160,6 +1161,8 @@ contains
           call phys_handle_small_values(.true.,wLp,x,ixI^L,ixL^L,'reconstruct left')
           call phys_handle_small_values(.true.,wRp,x,ixI^L,ixR^L,'reconstruct right')
        end if
+    case (limiter_bvd)
+       call BVDlimiter(ixI^L,ixL^L,idims,dxdim,w,wLp,wRp)
     case (limiter_ppm)
        ixCmin^D=ixLmin^D+kr(idims,^D);
        ixCmax^D=ixLmax^D;

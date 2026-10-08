@@ -1,41 +1,35 @@
-
- &testlist
+&testlist
  /
 
  &filelist
         autoconvert   = .true.
         saveprim      = .true.
-        base_filename ='icarus_3d'
+        base_filename ='icarus_paper_v3'
         convert_type  = 'vtuBCCmpi'
-        typefilelog = 'regression_test'
         slice_type    = 'csv'
         nocartesian   = .true.
         nwauxio       = 3
-
-
 /
 
  &savelist
-         dtsave_log=1.d-3
-!        itsave(1,1)   = 0
-!        itsave(1,2)   = 0
-!        tsavestart(2) = 336.0
-!        dtsave_dat    = 3.0
+        dtsave_log=1.d-3
+        itsave(1,1)   = 0
+        itsave(1,2)   = 0
+        tsavestart(2) = 24.0
+        dtsave_dat    = 24.0
 /
 
 
  &stoplist
-        time_max      = 5.d-2 !576.0d0
+        time_max      = 720.0d0
  /
 
  &methodlist
         time_stepper      = 'twostep'
         flux_scheme       = 20*'tvdlf'
-        !typepred1        = 20*'hancock'
         limiter           = 20*'minmod'
         dimsplit          = .false.
         check_small_values = .false.
-        !fix_small_values = .true.
         small_pressure    = 1.0d-18
         small_density     = 1.0d-14
         small_values_method = 'replace'
@@ -49,16 +43,11 @@
        mhd_rotating_frame = .true.
        mhd_n_tracer = 1
        SI_unit = .false.
-       mhd_particles = .true.
+        mhd_particles = .false.
  /
 
  &particles_list
-       physics_type_particles='sample'
-       num_particles=10
-       dtsave_particles=0.225d0
-       write_individual=.true.
-       write_ensemble=.false.
-
+       physics_type_particles='none'
  /
 
  &boundlist
@@ -72,17 +61,18 @@
  /
 
  &meshlist
-!        stretch_dim(1)='uni'
-!        stretch_uncentered = .false.
+        stretch_dim(1)     = 'uni'
+        qstretch_baselevel = 1.010
+        stretch_uncentered  = .false.
         refine_criterion=1
-        refine_max_level = 1
+        refine_max_level = 2
         nbufferx1=0
         nbufferx2=0
         nbufferx3=0
-        block_nx1=30
+        block_nx1=10
         block_nx2=8
         block_nx3=12
-        domain_nx1= 300
+        domain_nx1= 200
         domain_nx2= 32
         domain_nx3= 96
         xprobmin1=21.5
@@ -110,11 +100,11 @@
 /
 
 &icarus_list
-        amr_criterion = 'tracing'
+        amr_criterion = 'shock'
         cme_flag =1
         num_cmes = 5
-        relaxation = 14
-        cme_insertion = 0
+        relaxation = 8
+        cme_insertion = 7
         cme_parameter_file = 'cme_euhforia_formatted.in'
         magnetogram_time = '2015-06-25T01:04:00'
         delta_phi = -1.2040994899278814 

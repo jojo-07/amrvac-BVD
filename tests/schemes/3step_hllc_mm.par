@@ -1,0 +1,14 @@
+ &filelist
+        base_filename  = '_3step_hllc_mm'
+ /
+
+ &methodlist
+        time_stepper=  'threestep'
+        flux_scheme =    20*'hllc'
+        limiter=  20*'minmod'
+        typeboundspeed  = 'cmaxmean'
+ /
+
+ &paramlist
+        courantpar = 0.9
+ /

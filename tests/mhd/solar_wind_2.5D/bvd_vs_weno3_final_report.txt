@@ -1,0 +1,12 @@
+BVD vs WENO3 final report (2026-09-21 08:29)
+BVD  : step=999071 t=2.48380000E+02  NaN=0
+WENO3: step=995584 t=2.48380000E+02  NaN=0
+rho/m1/e relative differences (BVD vs WENO3):
+t=10      rho rel=6.56e-05 | m1 rel=2.27e-04 | e rel=3.44e-04
+t=50      rho rel=1.28e-03 | m1 rel=4.30e-03 | e rel=9.68e-03
+t=100     rho rel=2.22e-02 | m1 rel=4.22e-02 | e rel=6.07e-02
+t=150     rho rel=5.59e-02 | m1 rel=6.93e-02 | e rel=7.16e-02
+t=200     rho rel=5.56e-02 | m1 rel=6.91e-02 | e rel=7.15e-02
+t=240     rho rel=5.75e-02 | m1 rel=7.09e-02 | e rel=7.28e-02
+t=248.38  rho rel=5.76e-02 | m1 rel=7.10e-02 | e rel=7.27e-02
+snapshots: BVD=49  WENO3=49

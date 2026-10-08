@@ -38,6 +38,17 @@ module mod_limiter
   integer, parameter :: limiter_teno5ad = 23
   integer, parameter :: limiter_weno7 = 24
   integer, parameter :: limiter_mpweno7 = 25
+  integer, parameter :: limiter_bvd = 26
+  !> steepness of the first THINC candidate in the BVD limiter [0.5, 3.5]
+  double precision :: bvd_beta = 1.05d0
+  !> steepness of the second THINC candidate in the two-stage BVD
+  double precision :: bvd_beta2 = 1.2d0
+  !> use two-stage BVD selection (P4 vs THINC, then vs THINC2)
+  logical :: bvd_twostage = .false.
+  !> high-order candidate in the BVD limiter: 1=quadratic polynomial (default), 2=WENO3
+  integer :: bvd_highorder = 1
+  !> enable the BVD selection (THINC vs high-order); .false. = high-order candidate only
+  logical :: bvd_selection = .true.
 
 contains
 
@@ -98,6 +109,8 @@ contains
        limiter_type = limiter_weno7
     case ('mpweno7')
        limiter_type = limiter_mpweno7
+    case ('bvd')
+       limiter_type = limiter_bvd
 
     case default
        limiter_type = -1
@@ -327,6 +340,8 @@ contains
         end where
         rdw(ixO^S)=rdw(ixO^S)*dwC(hxO^S)
        end if
+    case(limiter_bvd)
+       call mpistop("BVD limiter not available for this flux scheme")
     case default
        call mpistop("Error in dwLimiter: unknown limiter")
     end select
